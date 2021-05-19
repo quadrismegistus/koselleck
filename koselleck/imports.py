@@ -4,6 +4,7 @@ root=os.path.dirname(os.path.abspath(os.path.join(here,'..')))
 PATH_LIB=os.path.join(root,'lib')
 sys.path.append(os.path.join(PATH_LIB,'Noise-Aware-Alignment'))
 sys.path.append(os.path.join(PATH_LIB,'abslithist'))
+sys.path.append('/home/ryan/github/yapmap')
 from abslithist import *
 
 here=os.path.abspath(__file__)
@@ -26,11 +27,19 @@ PATH_MODELS_BPO=os.path.join(PATH_MODELS_NEW,'bpo')
 FN_CHANGE_RUNS_AVG = os.path.join(PATH_DATA,'data.measured_change.runs_avg.v2.csv')
 FN_CHANGE_RUNS = os.path.join(PATH_DATA,'data.measured_change.runs.v2.csv')
 FN_DATA_CACHE_DEC=os.path.join(PATH_DATA,'data.cache.decade_level_data.pkl')
-FN_VECTOR_SCORES_RUNS=os.path.join(PATH_DATA,'data.vector_scores_across_models.csv')
+FN_VECTOR_SCORES_RUNS=os.path.join(PATH_DATA,'data.vector_scores_across_models.pkl')
 FN_VECTOR_SCORES_DIFFMEANS=os.path.join(PATH_DATA,'data.vector_scores_across_models.diff_means.csv')
+FN_FREQ_DEC_MODELS=os.path.join(PATH_DATA,'data.freq_across_decade_models.csv')
+FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v5-halfdec.pkl')
 FIELD_ABS_KEY='Abs-Conc.Median'
+FN_AMBIGUITY=os.path.join(PATH_DATA,'data.ambiguity.runs.csv')
+URL_KEYWORDS='https://docs.google.com/spreadsheets/d/e/2PACX-1vRzHA7iqgW7BB9SCtR0Nr3Dge5zSkY9C6lOkUMFV7Bd4Bhap6LVR3sWrXnjovUNhL9HAUNUJNRB62rD/pub?gid=0&single=true&output=csv'
+DEFAULT_NUM_SKIP=20000
+FOOTE_W=5
 
 import os,sys,json,pickle
+import networkx as nx
+
 sys.path.insert(0,'../yapmap')
 import pandas as pd
 import numpy as np
@@ -53,7 +62,11 @@ from gensim.models import KeyedVectors,Word2Vec#,FastText
 from loguru import logger
 from scipy.spatial.distance import cosine
 from scipy.stats import percentileofscore
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+
 
 from .tools import *
 from .embeddings import *
 from .plots import *
+from .novelty import *

@@ -108,7 +108,8 @@ def do_measure_change_local(obj):
     vector1=np.array([fastdist.cosine(model1.wv[word], model1.wv[w]) for w in meta_neighborhood])
     vector2=np.array([fastdist.cosine(model2.wv[word], model2.wv[w]) for w in meta_neighborhood])
     # Compute the cosine distance *between* those similarity vectors
-    dist=fastdist.cosine(vector1,vector2)
+    csim=fastdist.cosine(vector1,vector2) # returns similarity not distane!!
+    dist=1-csim
     return {
         'word':word,
         'dist':dist,
@@ -177,7 +178,7 @@ def measure_change(
         suffix=func.__name__.split('_')[-1]
         fdf=func(m1,m2,words=words,**attrs)
         if 'dist' in set(fdf.columns):
-            fdf['dist']=zscore(fdf['dist'])
+            fdf['z']=zscore(fdf['dist'])
             fdf['rank']=(1-fdf['dist']).rank()
             fdf['perc']=fdf['dist'].apply(lambda x: percentileofscore(fdf.dist, x))
             # fdf['z']=zscore(fdf['dist'])
@@ -272,7 +273,7 @@ def get_neighbors(w,m1,m2=None,topn=25,wide=True):
 
 
 def get_centroid(model,words):
-    words=[words] if type(words)==str else words
+    words=[words] if type(words)==str else list(words)
     vectors=[]
     for w in words:
         if w in model.wv.key_to_index:
@@ -300,15 +301,29 @@ def compute_vector_scores(m,pos,neg=None,z=True):
 
 
 
-
+class SkipgramsSampler2:
+    def __init__(self,fn,num_skips_wanted=100000,replace=True):
+        self.fn=fn
+        self.num_skips_wanted=num_skips_wanted
+        if os.path.exists(fn):
+            with xopen(fn) as f:
+                lines=[ln.strip().split() for ln in f if ln.strip()]
+        if not replace and len(lines)<num_skips_wanted:
+            num_skips_wanted=len(lines)
+        self.skips=random.choices(lines,k=num_skips_wanted)
+    def __iter__(self):
+        yield from self.skips
+    def __len__(self): return len(self.skips)
 
 
 
 class SkipgramsSampler:
-    def __init__(self, fn, num_skips_wanted=None):
+    def __init__(self, fn, num_skips_wanted=None, replace=False):
             self.fn=fn
-            self.num_skips_wanted=num_skips_wanted
+            nskip=self.num_skips_wanted=num_skips_wanted
             self.num_skips=self.get_num_lines()
+            self.replace=replace
+            self.num_skips_wanted
             nskip=num_skips_wanted if num_skips_wanted and self.num_skips>num_skips_wanted else self.num_skips
             self.line_nums_wanted = set(random.sample(list(range(nskip)), nskip))
 
@@ -332,8 +347,111 @@ class SkipgramsSampler:
                                     yield line.strip().split()
 
 class SkipgramsSamplers:
-    def __init__(self,fns,nskip,**y):
-        self.skippers=[SkipgramsSampler(fn,nskip) for fn in fns]
+    def __init__(self,fns,nskip,sampler=SkipgramsSampler2,**y):
+        self.skippers=[sampler(fn,nskip) for fn in fns]
     def __iter__(self):
         for skipper in self.skippers:
             yield from skipper
+
+def get_skipgrams(idir=PATH_SKIPGRAMS_YR,skipgram_n=25, calc_numlines=False):
+    odf=pd.DataFrame([
+        {
+            'corpus':fn.split('.')[2],
+            'year':int([x for x in fn.split('.') if x.isdigit()][0]),
+#             'period_end':int([x for x in fn.split('.') if x.isdigit()][-1]),
+            'path':os.path.join(idir,fn)
+        }
+        for fn in os.listdir(idir)
+        if fn.startswith('data.skipgrams')
+    ]).sort_values(['corpus','year'])
+    if get_numlines:
+        odf['num_lines']=odf.path.progress_apply(get_numlines)
+        odf['num_words']=odf['num_lines']*skipgram_n
+    return odf.query('1680<=year<1970')
+
+
+
+
+def measure_ambiguity(model,words=None,topn=10):
+    dfdist=to_dist(model,words=words)
+    g=to_semnet_from_dist(dfdist,topn=topn)
+    s=pd.Series(nx.clustering(g)).sort_values()
+    amb=1-s
+    return amb
+
+def to_dist(m,words=None,z=1,norm=1,maxwords=10000):
+    if words is None:
+        words=[m.wv.index_to_key[i] for i in range(maxwords)]
+    else:
+        words=set(words) & set(m.wv.key_to_index.keys())
+    words=list(words)
+    vecs = np.array([m.wv[w] for w in words], dtype=np.float64)
+    omatrix = fastdist.cosine_pairwise_distance(vecs, return_matrix=True)
+    odf = round(pd.DataFrame(omatrix, index=words, columns=words),6)
+    maxv=odf.max().max()
+    odf=odf.replace({maxv:np.nan})
+    if norm: odf=maxv - odf
+    if z: odf=(odf - odf.mean().mean())/odf.std().std()
+    return odf
+
+def to_semnet_from_dist(dfdist,cutoff=3,topn=10):
+    g=nx.Graph()
+    for word1 in dfdist.columns:
+        for word2,val in dfdist[word1].sort_values(ascending=True).iloc[:topn].items():
+            g.add_edge(word1,word2,weight=val*-1)
+    return g
+
+def measure_ambiguity(model,words=None,topn=10,z=False):
+    dfdist=to_dist(model,words=words)
+    g=to_semnet_from_dist(dfdist,topn=topn)
+    s=pd.Series(nx.clustering(g)).sort_values()
+    amb=1-s
+    if z: amb=(amb - amb.mean())/amb.std()
+    return amb
+
+def get_any_model(dfpath=None):
+    if dfpath is None: dfpath=get_pathdf_models_bydecade()
+    row=dfpath.sample(n=1).iloc[0]
+    return load_model_row(row)
+
+def measure_freq(model,words=None,tf=True,z=False):
+    mwords=set(model.wv.key_to_index.keys())
+    words=mwords if not words else mwords&set(words)
+    vocabd=dict(
+        (
+            w,
+            model.wv.get_vecattr(w,'count')
+        )
+        for w in words
+    )
+    svocab=pd.Series(vocabd)
+    if tf: svocab=svocab / svocab.sum()
+    if z: svocab=(svocab - svocab.mean()) / svocab.std()
+    return svocab
+
+INFLECTER=None
+def measure_singularism(m,words=None,z=True):
+    global INFLECTER
+    if INFLECTER is None:
+        import inflect
+        INFLECTER=inflect.engine() 
+    p=INFLECTER
+
+    if not words: words=get_valid_words()
+    words=list(set(words) & set(m.wv.key_to_index.keys()))
+    words_plurals = pmap(p.plural_noun, words, num_proc=1, progress=False)
+    s=measure_freq(m,words=set(words+words_plurals),z=z)
+    sd=dict(s)
+    odf=pd.DataFrame([
+        {'word':ws, 'word_pural':wp, 'freq_sing':sd.get(ws), 'freq_plural':sd.get(wp)}
+        for ws,wp in zip(words,words_plurals)
+        if ws!=wp
+    ])
+    odf['freq_diff']=odf['freq_sing']-odf['freq_plural']
+    odf['rank_sing']=odf['freq_sing'].rank(ascending=True)
+    odf['rank_plural']=odf['freq_plural'].rank(ascending=True)
+    odf['rank_diff']=odf['rank_sing']-odf['rank_plural']
+    if z:
+        for x in odf.select_dtypes('number').columns:
+            odf[x]=(odf[x] - odf[x].mean())/odf[x].std()
+    return odf.set_index('word').sort_values('rank_diff').dropna()
