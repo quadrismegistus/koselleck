@@ -172,3 +172,46 @@ def plot_word_info(w,rolling=2,title=''):
     display(show_changes_for_word(w))
     printm('* These changes visualized:')
     display(fig)
+
+
+
+
+
+
+
+
+
+
+# define a function for vertically 
+# concatenating images of different
+# widths 
+def vconcat_resize(img_list, interpolation 
+                   = cv2.INTER_CUBIC):
+      # take minimum width
+    w_min = min(img.shape[1] 
+                for img in img_list)
+      
+    # resizing images
+    im_list_resize = [cv2.resize(img,
+                      (w_min, int(img.shape[0] * w_min / img.shape[1])),
+                                 interpolation = interpolation)
+                      for img in img_list]
+    # return final image
+    return cv2.vconcat(im_list_resize)
+
+def combine_plots(fig1,fig2,ofn='plot.combined.png'):
+    import tempfile,cv2
+    from IPython.display import Image
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        ofn1=os.path.join(tmpdirname,'fig1.png')
+        ofn2=os.path.join(tmpdirname,'fig2.png')
+        fig1.save(ofn1)
+        fig2.save(ofn2)
+        img1 = cv2.imread(ofn1)
+        img2 = cv2.imread(ofn2)
+        #im_v = cv2.vconcat([img1, img2])
+        im_v = vconcat_resize([img1,img2])
+        if os.path.exists(ofn): os.unlink(ofn)
+        cv2.imwrite(ofn, im_v)
+        return Image(ofn)
+        

@@ -340,6 +340,37 @@ def get_figdf1_rateofchange(df=None,randomize=False):
 
 
 
+DFWAS=None
+def get_word_abstractness_scores(cols=['Abs-Conc.Median.C18','Abs-Conc.Median.C19']):
+    global DFWAS
+    if DFWAS is None:
+        DFWAS=get_allnorms()[cols].reset_index().dropna().set_index('word').mean(axis=1)
+    return DFWAS
+
+
+def prdz(y,ystart=1710,yend=3000,ystep=40):
+    ln=None
+    for n in range(ystart,yend,ystep):
+        if ln is None: ln=n
+        if y<n: return ln
+        ln=n
+        
+
+
+def get_novelty_data(ifn=FN_NOVELTY_DATA):
+    allres = pd.read_pickle(ifn).query('foote_novelty!=0.0')
+    allres['is_signif']=[int(x<0.05 or y<0.05)
+                        for x,y in zip(allres.p_peak,allres.p_trough)]
+    allres['foote_size']=allres.foote_size.apply(int)
+    allres['year']=allres.year.apply(int)
+    allres = pd.concat(grp.assign(glen=len(grp)) for i,grp in allres.groupby(['foote_size','year'])).reset_index()
+    allres = pd.concat(
+        grp.sort_values('year').assign(
+            foote_novelty_z=((grp.foote_novelty - grp.foote_novelty.dropna().mean()) / grp.foote_novelty.dropna().std())
+        )#.set_index('year').rolling(rolling,min_periods=min_periods).mean()
+        for i,grp in allres.groupby('foote_size')
+    )
+    return allres
 
 
 C=get_corpus()
@@ -347,4 +378,6 @@ logger.remove()
 logger.add(sys.stderr, format="{message}", filter='koselleck', level="INFO")
 # logger.add(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")
 def log(*x,**y): logger.info(*x,**y)
+    
+
     

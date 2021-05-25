@@ -7,7 +7,8 @@ def get_data_paceofchange(ifn=FN_DATA_PACEOFCHANGE):
         DFPOC=pd.read_pickle(ifn)
     return DFPOC
 
-def get_distmatrix_rateofchange(df=None,words=None,is_clean=True,dist_key='dist'):
+
+def get_distmatrix_rateofchange(df=None,words=None,is_clean=True,dist_key='dist',ymin=None,ymax=None):
     if df is None: df=get_data_paceofchange()
     if words:
         df=df[df.word.isin(words)]
@@ -25,10 +26,27 @@ def get_distmatrix_rateofchange(df=None,words=None,is_clean=True,dist_key='dist'
     figdf['period_int2']=figdf.period2.apply(lambda x: int(x[:4]))
     
     # return
-    distdf=figdf.pivot('period_int1','period_int2', dist_key).fillna(0)
+    distdf=figdf.pivot('period_int1','period_int2', dist_key)#.fillna(0)
+        
+        
+    ## nan it out?
+    distdf=distdf[[y for y in distdf.columns if not ymin or y>=ymin]]
+    distdf=distdf.loc[[y for y in distdf.index if not ymin or y>=ymin]]
+    distdf=distdf[[y for y in distdf.columns if not ymax or y<ymax]]
+    distdf=distdf.loc[[y for y in distdf.index if not ymax or y<ymax]]
+    
+#     if ymin:
+#         for yy in distdf.columns:
+#             if yy<ymin: distdf[yy]=np.nan
+#         for yy in distdf.index:
+#             if yy<ymin: distdf.loc[yy]=np.nan
+#     if ymax:
+#         for yy in distdf.columns:
+#             if yy>ymax: distdf[yy]=np.nan
+#         for yy in distdf.index:
+#             if yy>ymax: distdf.loc[yy]=np.nan
+
     return distdf
-
-
     
 def make_foote(quart=FOOTE_W):
     tophalf = [-1] * quart + [1] * quart
@@ -216,12 +234,13 @@ def colored_segments(novelties, significance, yrwidth=1,min_year=1700):
     
 def test_novelty(distdf, foote_sizes=None, num_runs=100):
     if not foote_sizes: foote_sizes=range(FOOTE_W-3, FOOTE_W+2)
-    dq=distdf.values
+    dq=distdf.fillna(0).values
     o=[]
     for fs in foote_sizes:
         try:
             novelties, significance_peak, significance_trough = permute_test(dq, foote_size=fs, num_runs=num_runs)
-        except ValueError:
+        except ValueError as e:
+            # print('!!',e,'!!')
             continue
         for year,nov,sigp,sigt in zip(distdf.columns, novelties, significance_peak, significance_trough):
             odx={
@@ -236,11 +255,3 @@ def test_novelty(distdf, foote_sizes=None, num_runs=100):
 
 
 
-
-
-def plot_distmat(distdf,extent=None):
-    plt.rcParams["figure.figsize"] = [9.0, 6.0]
-    if not extent: extent=[distdf.index[0], distdf.index[-1], distdf.columns[0], distdf.columns[-1]]
-    plt.matshow(distdf, origin = 'lower', cmap = plt.cm.YlOrRd, extent = extent)
-    plt.show()
-    
