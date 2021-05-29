@@ -4,4 +4,4 @@ backup
 lib
 .ipynb_checkpoints
 *.pyc
-
+*png

@@ -32,14 +32,15 @@ FN_VECTOR_SCORES_RUNS=os.path.join(PATH_DATA,'data.vector_scores_across_models.p
 FN_VECTOR_SCORES_DIFFMEANS=os.path.join(PATH_DATA,'data.vector_scores_across_models.diff_means.csv')
 FN_FREQ_DEC_MODELS=os.path.join(PATH_DATA,'data.freq_across_decade_models.csv')
 # FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v5-halfdec.pkl')
-FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v9-local-halfdec.pkl')
-# FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v10-local-k50-halfdec.pkl')
+# FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v9-local-halfdec.pkl')
+FN_DATA_PACEOFCHANGE = os.path.join(PATH_DATA,'data.semantic_change_over_decades.1run.v10-local-k50-halfdec.pkl')
 FIELD_ABS_KEY='Abs-Conc.Median'
 FN_AMBIGUITY=os.path.join(PATH_DATA,'data.ambiguity.runs.csv')
 URL_KEYWORDS='https://docs.google.com/spreadsheets/d/e/2PACX-1vRzHA7iqgW7BB9SCtR0Nr3Dge5zSkY9C6lOkUMFV7Bd4Bhap6LVR3sWrXnjovUNhL9HAUNUJNRB62rD/pub?gid=0&single=true&output=csv'
 DEFAULT_NUM_SKIP=20000
 FOOTE_W=5
-FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
+# FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
+FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
 
 
 import os,sys,json,pickle

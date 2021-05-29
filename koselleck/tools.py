@@ -9,7 +9,12 @@ def periodize_sattelzeit(y):
 def periodize_sattelzeit_binary(y):
     if 1700<=y<1770: return '1700-1770'
     if 1830<=y<1900: return '1830-1900'
-
+    
+UPROOT='/Markdown/Drafts/TheGreatAbstraction/figures/'
+def upfig(fnfn,uproot=UPROOT):
+    ofnfn=os.path.join(uproot,os.path.basename(fnfn))
+    os.system(f'dbu upload {fnfn} {ofnfn}')
+    return os.system(f'dbu share {ofnfn}')
 
 def get_keywords(url=URL_KEYWORDS,just_words=False):
     df=pd.read_csv(url).fillna('')
@@ -303,7 +308,7 @@ def to_z(pivdf,axis=1,progress=False):
     return pivdfz.T if not axis else pivdfz
 
 
-def start_fig(data=None, theme='classic',text_size=8, figure_size=(8,8), **aesd):
+def start_fig(data=None, theme='minimal',text_size=8, figure_size=(8,8), **aesd):
     p9.options.figure_size=figure_size
     p9.options.dpi=600
     fig=p9.ggplot(p9.aes(**aesd), data=data)
