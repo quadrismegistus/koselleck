@@ -386,3 +386,12 @@ def log(*x,**y): logger.info(*x,**y)
     
 
     
+    
+    
+UPROOT='/Markdown/Drafts/TheGreatAbstraction/figures/'
+def upfig(fnfn,uproot=UPROOT):
+    ofnfn=os.path.join(uproot,os.path.basename(fnfn))
+    cmd=f'dbu upload {fnfn} {ofnfn}'
+    os.system(cmd)
+    cmd = f'dbu share {ofnfn}'
+    os.system(cmd)

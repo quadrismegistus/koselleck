@@ -41,7 +41,8 @@ DEFAULT_NUM_SKIP=20000
 FOOTE_W=5
 # FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
 FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
-
+FN_ALL_LOCALDISTS = os.path.join(PATH_DATA,'data.all_local_dists.pkl')
+DF_LOCALDISTS=None
 
 import os,sys,json,pickle
 import networkx as nx
@@ -60,12 +61,13 @@ from scipy.stats import ttest_ind
 try:
     from ipywidgets import interact, interactive, fixed, interact_manual
     import ipywidgets as widgets
-except Exception:
+except ImportError as e:
     pass
 disable_gensim_logging()
 from noise_aware import noise_aware
 from ftfy import fix_text
 import cv2
+
 
 from gensim.models import KeyedVectors,Word2Vec#,FastText
 from loguru import logger
@@ -73,9 +75,17 @@ from scipy.spatial.distance import cosine
 from scipy.stats import percentileofscore
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-from IPython.display import Image
+try:
+    from IPython.display import Image
+    from ipywidgets import interact, interactive, fixed, interact_manual
+    import ipywidgets as widgets
+except ImportError as e:
+    print('!!',e)
+    pass
 
 from .tools import *
 from .embeddings import *
 from .plots import *
+from .dists import *
 from .novelty import *
+
