@@ -382,7 +382,7 @@ C=get_corpus()
 logger.remove()
 logger.add(sys.stderr, format="{message}", filter='koselleck', level="INFO")
 # logger.add(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")
-def log(*x,**y): logger.info(*x,**y)
+def log(*x,**y): logger.info(' '.join(str(xx) for xx in x),**y)
     
 
     
@@ -395,3 +395,36 @@ def upfig(fnfn,uproot=UPROOT):
     os.system(cmd)
     cmd = f'dbu share {ofnfn}'
     os.system(cmd)
+    
+    
+    
+    
+def rsync(ifnfn,ofnfn,flags='-avP'):
+    return runcmd(f'rsync {flags} {ifnfn} {ofnfn}')
+
+def _rsync_data_from_ember(obj): return rsync(obj[0], obj[1])
+def rsync_data_from_ember(num_proc=1):
+    paths_I_want = [
+        os.path.join(
+            os.path.dirname(path),
+            'dists.pkl'
+        ).split('/ryan/')[-1] for path in get_model_paths_df(PATH_MODELS_BPO).path
+    ]
+    objs = [
+        (f'ryan@ember:{fn}', os.path.join(os.path.expanduser('~'), fn))
+        for fn in paths_I_want
+    ]
+    objs = [(x,y) for x,y in objs if not os.path.exists(y)]
+    
+    return pmap(_rsync_data_from_ember, objs, num_proc=num_proc, desc='Rsyncing data from ember')
+def runcmd(cmd,verbose=False):
+    import subprocess
+    print('>>',cmd)
+    result = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).decode()
+    return result
+
+
+def periodize(y,ybin=5):
+    y1=y//ybin*ybin
+    y2=y1+ybin
+    return f'{y1}-{y2}'

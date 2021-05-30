@@ -38,11 +38,15 @@ FIELD_ABS_KEY='Abs-Conc.Median'
 FN_AMBIGUITY=os.path.join(PATH_DATA,'data.ambiguity.runs.csv')
 URL_KEYWORDS='https://docs.google.com/spreadsheets/d/e/2PACX-1vRzHA7iqgW7BB9SCtR0Nr3Dge5zSkY9C6lOkUMFV7Bd4Bhap6LVR3sWrXnjovUNhL9HAUNUJNRB62rD/pub?gid=0&single=true&output=csv'
 DEFAULT_NUM_SKIP=20000
+NSKIP_PER_YR=20000
+
 FOOTE_W=5
 # FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
 FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
 FN_ALL_LOCALDISTS = os.path.join(PATH_DATA,'data.all_local_dists.pkl')
 DF_LOCALDISTS=None
+FN_ALL_LOCALDISTS_V2=os.path.join(PATH_DATA,'data.all_local_dists.v3.pkl')
+FN_ALL_LOCALDISTS_V2_CACHE=os.path.join(PATH_DATA,'data.all_local_dists.v3.cache.pkl')
 
 import os,sys,json,pickle
 import networkx as nx
@@ -84,8 +88,9 @@ except ImportError as e:
     pass
 
 from .tools import *
+print = log
+
 from .embeddings import *
 from .plots import *
 from .dists import *
 from .novelty import *
-
