@@ -39,6 +39,8 @@ FN_AMBIGUITY=os.path.join(PATH_DATA,'data.ambiguity.runs.csv')
 URL_KEYWORDS='https://docs.google.com/spreadsheets/d/e/2PACX-1vRzHA7iqgW7BB9SCtR0Nr3Dge5zSkY9C6lOkUMFV7Bd4Bhap6LVR3sWrXnjovUNhL9HAUNUJNRB62rD/pub?gid=0&single=true&output=csv'
 DEFAULT_NUM_SKIP=20000
 NSKIP_PER_YR=20000
+YMIN=1720
+YMAX=1960
 
 FOOTE_W=5
 # FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
