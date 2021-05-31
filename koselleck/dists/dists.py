@@ -2,7 +2,7 @@ from koselleck.imports import *
 
 def get_all_localdists():
     global DF_LOCALDISTS
-    if DF_LOCALDISTS is None: DF_LOCALDISTS=get_cross_model_dists()
+    if DF_LOCALDISTS is None: DF_LOCALDISTS=get_cross_model_dists().reset_index()
     #DF_LOCALDISTS=pd.read_pickle(FN_ALL_LOCALDISTS).groupby(['period1','period2','word']).mean()
     return DF_LOCALDISTS
 
@@ -159,16 +159,15 @@ def do_gen_cross_model_dists(pathdf,progress=False,ks=[10,25,50],progress_words=
                 }]
     return pd.DataFrame(o)
     
-def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_V2_CACHE,cache=True,force=False,**y):
+def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_CACHE,cache=True,force=False,**y):
     if cache and not force and os.path.exists(fnfn_cache): return read_df(fnfn_cache)
     
-    odf=read_df(FN_ALL_LOCALDISTS_V2)
+    odf=read_df(FN_ALL_LOCALDISTS)
     odf['k']=odf['k'].apply(int)
     odf_z = pd.concat(
         dfg.assign(
             dist_local_z = (dfg.dist_local - dfg.dist_local.mean()) / dfg.dist_local.std(),
-#             rank_local = round(dfg.dist_local.rank(),4),
-            dist_local_perc = dfg.dist_local.rank() / len(dfg.dist_local) * 100
+            dist_local_perc = dfg.dist_local.rank() / len(dfg.dist_local) * 100,
             #dist_local_perc = dfg.dist_local.apply(lambda x: percentileofscore(dfg.dist_local, x))
         )
         for i,dfg in tqdm(odf.groupby('k'),desc='Normalizing scores by k-value')
@@ -201,8 +200,9 @@ def get_historical_semantic_distance_matrix(
         dist_key='dist_local_perc',
         ymin=None,
         ymax=None,
-        interpolate=False):
-    df=get_all_localdists().reset_index()
+        interpolate=False,
+        normalize=False):
+    df=get_all_localdists()
     if type(words)==str: words=tokenize_fast(words)
     if words: df=df[df.word.isin(words)]
     if ymin: df=df.query(f'period1>="{ymin}" & period2>="{ymin}"')
@@ -215,6 +215,7 @@ def get_historical_semantic_distance_matrix(
     period_types=set(odf.period1) | set(odf.period2)
     pdf3=pd.DataFrame([{'period1':x, 'period2':x, dist_key:0} for x in period_types])
     odf=odf.append(pdf3)
+    odf[dist_key]=odf[dist_key] / odf[dist_key].max()
     odf=odf.pivot('period1','period2',dist_key)
     if interpolate:
         for idx in odf.index:

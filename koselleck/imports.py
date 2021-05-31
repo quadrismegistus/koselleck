@@ -45,10 +45,16 @@ YMAX=1960
 FOOTE_W=5
 # FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
 FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
-FN_ALL_LOCALDISTS = os.path.join(PATH_DATA,'data.all_local_dists.pkl')
+
 DF_LOCALDISTS=None
 FN_ALL_LOCALDISTS_V2=os.path.join(PATH_DATA,'data.all_local_dists.v4.pkl')
 FN_ALL_LOCALDISTS_V2_CACHE=os.path.join(PATH_DATA,'data.all_local_dists.v4.cache.pkl')
+FN_ALL_LOCALDISTS=os.path.join(PATH_DATA,'data.all_local_dists.v3.pkl')
+FN_ALL_LOCALDISTS_CACHE=os.path.join(PATH_DATA,'data.all_local_dists.v3.cache.pkl')
+FN_NOV_ALL_BYWORD = os.path.join(PATH_DATA,'data.novelty.by_word.pkl')
+DFALLNOV=None
+
+
 
 import os,sys,json,pickle
 import networkx as nx
