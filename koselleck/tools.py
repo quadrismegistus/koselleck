@@ -313,7 +313,10 @@ def start_fig(data=None, theme='minimal',text_size=8, figure_size=(8,8), **aesd)
     p9.options.dpi=600
     fig=p9.ggplot(p9.aes(**aesd), data=data)
     fig+=getattr(p9,f'theme_{theme}')()
-    fig+=p9.theme(text=p9.element_text(size=text_size))
+    fig+=p9.theme(
+        text=p9.element_text(size=text_size),
+        plot_background=p9.element_rect(fill='white')
+    )
     return fig
     
     
