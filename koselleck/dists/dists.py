@@ -175,7 +175,7 @@ def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_CACHE,cache=True,force=Fa
     ).reset_index()
     
     # average out runs
-    odf_z_mean = odf_z.groupby(['corpus1','corpus2','period1','period2','word']).mean().drop('k',1).sort_values('dist_local')
+    odf_z_mean = odf_z.groupby(['corpus1','corpus2','period1','period2','word','k']).mean().sort_values('dist_local')
     if cache: odf_z_mean.to_pickle(fnfn_cache)
     return odf_z_mean
     
@@ -194,19 +194,20 @@ Distance matrix functions
 
 
 
-
 def get_historical_semantic_distance_matrix(
         words=None,
         dist_key='dist_local_perc',
         ymin=None,
         ymax=None,
         interpolate=False,
-        normalize=False):
+        normalize=False,
+        ks={10,25,50}):
     df=get_all_localdists()
     if type(words)==str: words=tokenize_fast(words)
     if words: df=df[df.word.isin(words)]
     if ymin: df=df.query(f'period1>="{ymin}" & period2>="{ymin}"')
     if ymax: df=df.query(f'period1<"{ymax}" & period2<"{ymax}"')
+    if ks: df=df[df.k.isin(ks)]
     
     # fill out other half
     pdf=df.groupby(['period1','period2']).mean().reset_index()
@@ -221,6 +222,7 @@ def get_historical_semantic_distance_matrix(
         for idx in odf.index:
             odf.loc[idx] = odf.loc[idx].interpolate(limit_direction='both')
     return odf
+
 
 
 
