@@ -54,9 +54,10 @@ FN_ALL_LOCALDISTS_CACHE=os.path.join(PATH_DATA,'data.all_local_dists.v3.cache.pk
 FN_NOV_ALL_BYWORD = os.path.join(PATH_DATA,'data.novelty.by_word.pkl')
 DFALLNOV=None
 
+import os,sys
+import pickle5 as pickle
 
-
-import os,sys,json,pickle
+import json#,pickle
 import networkx as nx
 import warnings
 warnings.filterwarnings('ignore')

@@ -159,10 +159,10 @@ def do_gen_cross_model_dists(pathdf,progress=False,ks=[10,25,50],progress_words=
                 }]
     return pd.DataFrame(o)
     
-def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_CACHE,cache=True,force=False,**y):
+def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_V2_CACHE,cache=True,force=False,**y):
     if cache and not force and os.path.exists(fnfn_cache): return read_df(fnfn_cache)
     
-    odf=read_df(FN_ALL_LOCALDISTS)
+    odf=read_df(FN_ALL_LOCALDISTS_V2)
     odf['k']=odf['k'].apply(int)
     odf_z = pd.concat(
         dfg.assign(
@@ -175,7 +175,7 @@ def get_cross_model_dists(fnfn_cache=FN_ALL_LOCALDISTS_CACHE,cache=True,force=Fa
     ).reset_index()
     
     # average out runs
-    odf_z_mean = odf_z.groupby(['corpus1','corpus2','period1','period2','word','k']).mean().sort_values('dist_local')
+    odf_z_mean = odf_z.groupby(['corpus1','corpus2','period1','period2','word']).mean().drop('k',1).sort_values('dist_local')
     if cache: odf_z_mean.to_pickle(fnfn_cache)
     return odf_z_mean
     
@@ -207,7 +207,7 @@ def get_historical_semantic_distance_matrix(
     if words: df=df[df.word.isin(words)]
     if ymin: df=df.query(f'period1>="{ymin}" & period2>="{ymin}"')
     if ymax: df=df.query(f'period1<"{ymax}" & period2<"{ymax}"')
-    if ks: df=df[df.k.isin(ks)]
+#     if ks: df=df[df.k.isin(ks)]
     
     # fill out other half
     pdf=df.groupby(['period1','period2']).mean().reset_index()
