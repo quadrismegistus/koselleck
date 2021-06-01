@@ -74,53 +74,53 @@ def gen_within_model_dists(
 """
 ACROSS MODEL DISTANCES
 """
+# in nb :
+# def get_cross_model_dists_paths(ofn='data.all_local_dists.paths.csv',force=False,period_len=5,ymin=1720,ymax=1960):
+#     ofnfn=os.path.join(PATH_DATA,ofn)
+#     if not force and os.path.exists(ofnfn): 
+#         odf=read_df(ofnfn)
+#     else:
+#         dfpaths=get_model_paths_df(PATH_MODELS_BPO, 'dists.pkl').query(
+#             f'(period_end-period_start)==5 & period_start>={ymin} & period_end<={ymax}'
+#         ).sort_values('period_start')
+#         dfpaths['period']=[f'{x}-{y}' for x,y in zip(dfpaths.period_start, dfpaths.period_end)]
+# #         display(dfpaths)
+#         o=[]
+#         for i1,row1 in tqdm(dfpaths.iterrows(), total=len(dfpaths)):
+#             for i2,row2 in dfpaths.iterrows():
+#                 if row1.run!=row2.run: continue
+#                 if i1>=i2: continue
+#                 o+=[{
+#                     **dict((k+'1',v) for k,v in row1.items()),
+#                     **dict((k+'2',v) for k,v in row2.items())
+#                 }]
+#         odf=pd.DataFrame(o)
+#         odf.to_csv(ofnfn,index=False)
+#     return odf.sort_values(['period_start1','period_start2','run1','run2'])
 
-def get_cross_model_dists_paths(ofn='data.all_local_dists.paths.csv',force=False,period_len=5,ymin=1720,ymax=1960):
-    ofnfn=os.path.join(PATH_DATA,ofn)
-    if not force and os.path.exists(ofnfn): 
-        odf=read_df(ofnfn)
-    else:
-        dfpaths=get_model_paths_df(PATH_MODELS_BPO, 'dists.pkl').query(
-            f'(period_end-period_start)==5 & period_start>={ymin} & period_end<={ymax}'
-        ).sort_values('period_start')
-        dfpaths['period']=[f'{x}-{y}' for x,y in zip(dfpaths.period_start, dfpaths.period_end)]
-#         display(dfpaths)
-        o=[]
-        for i1,row1 in tqdm(dfpaths.iterrows(), total=len(dfpaths)):
-            for i2,row2 in dfpaths.iterrows():
-                if row1.run!=row2.run: continue
-                if i1>=i2: continue
-                o+=[{
-                    **dict((k+'1',v) for k,v in row1.items()),
-                    **dict((k+'2',v) for k,v in row2.items())
-                }]
-        odf=pd.DataFrame(o)
-        odf.to_csv(ofnfn,index=False)
-    return odf.sort_values(['period_start1','period_start2','run1','run2'])
 
-
-def gen_cross_model_dists(
-        dfpaths_cmp=None,
-        lim=None,
-        num_proc=4,
-        num_runs=1,
-        ofnfn=FN_ALL_LOCALDISTS_V2,
-        force=False,
-        **y):
-    if not force and os.path.exists(ofnfn):
-        odf=read_df(ofnfn)
-    else:
-        if dfpaths_cmp is None: dfpaths_cmp=get_cross_model_dists_paths()
-        dfpaths_cmp_f = dfpaths_cmp.query(f'run1<="run_{str(num_runs).zfill(2)}" & run2<="run_{str(num_runs).zfill(2)}"')
-        odf=pmap_groups(
-            do_gen_cross_model_dists,
-            dfpaths_cmp_f.iloc[:lim].groupby(['corpus1','period1','run1']),
-            num_proc=num_proc,
-            desc='Calculating Local Neighborhood Distance Measure over periods',
-            **y
-        )
-        odf.to_pickle(ofnfn)
-    return odf
+# def gen_cross_model_dists(
+#         dfpaths_cmp=None,
+#         lim=None,
+#         num_proc=4,
+#         num_runs=1,
+#         ofnfn=FN_ALL_LOCALDISTS_V2,
+#         force=False,
+#         **y):
+#     if not force and os.path.exists(ofnfn):
+#         odf=read_df(ofnfn)
+#     else:
+#         if dfpaths_cmp is None: dfpaths_cmp=get_cross_model_dists_paths()
+#         dfpaths_cmp_f = dfpaths_cmp.query(f'run1<="run_{str(num_runs).zfill(2)}" & run2<="run_{str(num_runs).zfill(2)}"')
+#         odf=pmap_groups(
+#             do_gen_cross_model_dists,
+#             dfpaths_cmp_f.iloc[:lim].groupby(['corpus1','period1','run1']),
+#             num_proc=num_proc,
+#             desc='Calculating Local Neighborhood Distance Measure over periods',
+#             **y
+#         )
+#         odf.to_pickle(ofnfn)
+#     return odf
 
 def do_gen_cross_model_dists(pathdf,progress=False,ks=[10,25,50],progress_words=False):
     row=pathdf.iloc[0]
