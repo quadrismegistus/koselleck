@@ -4,7 +4,7 @@ root=os.path.dirname(os.path.abspath(os.path.join(here,'..')))
 PATH_LIB=os.path.join(root,'lib')
 sys.path.append(os.path.join(PATH_LIB,'Noise-Aware-Alignment'))
 sys.path.append(os.path.join(PATH_LIB,'abslithist'))
-sys.path.append('/home/ryan/github/yapmap')
+sys.path.insert(0,'/home/ryan/github/yapmap')
 from abslithist import *
 
 here=os.path.abspath(__file__)
@@ -16,7 +16,7 @@ CNAME='BPO'
 OFN_MEAN_DIFF=os.path.join(PATH_DATA,'data.becoming_abs.mean_diff.csv')
 WORD_FN=os.path.join(PATH_DATA,'words.txt')
 PATH_SKIPGRAMS=os.path.join(PATH_DATA,'skipgrams')
-PATH_MODELS_NEW=os.path.join(PATH_DATA,'models')
+PATH_MODELS=PATH_MODELS_NEW=os.path.join(PATH_DATA,'models')
 PATH_MODELS_OLD='/home/ryan/DH/data/models'
 PATH_SKIPGRAMS_YR=os.path.join(PATH_SKIPGRAMS,'years')
 PATH_FIELDS=os.path.join(PATH_DATA,'fields')
@@ -44,9 +44,12 @@ YMAX=1960
 
 FOOTE_W=5
 # FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.pkl')
+FN_VECLIB=os.path.join(PATH_DATA,'data.veclib.dbm')
+
 
 DF_LOCALDISTS=None
 DFALLNOV=None
+VECLIB=defaultdict(None)
 
 
 FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
@@ -56,19 +59,25 @@ FN_ALL_LOCALDISTS=os.path.join(PATH_DATA,'data.all_local_dists.v3.pkl')
 FN_ALL_LOCALDISTS_CACHE=os.path.join(PATH_DATA,'data.all_local_dists.v3.cache.pkl')
 FN_NOV_ALL_BYWORD = os.path.join(PATH_DATA,'data.novelty.by_word.pkl')
 FN_ALL_NEIGHBS=os.path.join(PATH_DATA,'data.all_local_neighbs.v2.pkl')
+FN_ALL_NEIGHBS_SIMPLE=os.path.join(PATH_DATA,'data.all_local_neighbs.v2.simple.pkl')
+DF_MODELS_DL=None
+NEIGHB_SIMPLE_D=None
+FN_ALL_MODEL_CACHE=os.path.join(PATH_DATA,'data.all_models_halfdec.pkl')
+FN_ALL_NEIGHBS_SIMPLE=os.path.join(PATH_DATA,'data.all_local_neighbs.v2.simple.pkl')
 
 
 
-
-import os,sys
+import os,sys,time
 import pickle5 as pickle
 
-import json#,pickle
+import ujson,json#,pickle
 import networkx as nx
 import warnings
 warnings.filterwarnings('ignore')
+import shelve
 
 sys.path.insert(0,'../yapmap')
+sys.path.insert(0,'/home/ryan/github/mongodict')
 import pandas as pd
 import numpy as np
 # from abslithist.embeddings import *
@@ -86,7 +95,8 @@ disable_gensim_logging()
 from noise_aware import noise_aware
 from ftfy import fix_text
 import cv2
-
+import pysos
+from pandas.core.groupby.groupby import DataError
 
 from gensim.models import KeyedVectors,Word2Vec#,FastText
 from loguru import logger
@@ -101,6 +111,7 @@ try:
 except ImportError as e:
     print('!!',e)
     pass
+from mongodict import MongoDict
 
 from .tools import *
 print = log

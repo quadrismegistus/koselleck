@@ -1,6 +1,48 @@
 from .imports import *
 
 
+def dbget(qstr,to_pd=False):
+    vl=get_veclib(prefix=qstr.split('(')[0])
+    o=vl.get(qstr)
+    if to_pd:
+        if type(o)==list and o and type(o[0])==dict:
+            o=pd.DataFrame(o)
+        elif type(o)==dict:
+            o=pd.Series(o)
+    return o
+
+def get_veclib(prefix):
+    global VECLIB
+    if VECLIB[prefix] is None:
+#         import dbm
+#         VECLIB=dbm.open(FN_VECLIB,'c')
+        now=time.time()
+#         print('Connecting to vector library')
+        #VECLIB=tshelve.open(FN_VECLIB)
+#         from pymongo import MongoClient
+        VECLIB[prefix] = MongoDict(host='localhost', port=27017, database='koselleck',collection=prefix)
+#         VECLIB=MongoClient()
+#         print(f'Connected in {round(time.time()-now,1)} seconds')
+#         import redis
+#         VECLIB=redis.Redis(host='localhost', port=6379, db=0)
+#     print(len(VECLIB))
+    return VECLIB[prefix]
+
+def close_veclib():
+    global VECLIB
+    if VECLIB is not None:
+        VECLIB.close()
+        VECLIB=None
+
+
+
+def src(x):
+    from IPython.display import Code,display
+    if type(x)!=str:
+        import inspect
+        x=inspect.getsource(x)
+    display(display_source(x))
+
 def periodize_sattelzeit(y):
     if 1700<=y<1770: return '1700-1770'
     if 1770<=y<1830: return '1770-1830'
@@ -15,6 +57,8 @@ def upfig(fnfn,uproot=UPROOT):
     ofnfn=os.path.join(uproot,os.path.basename(fnfn))
     os.system(f'dbu upload {fnfn} {ofnfn}')
     return os.system(f'dbu share {ofnfn}')
+
+def get_keywords_l(): return get_keywords(just_words=True)
 
 def get_keywords(url=URL_KEYWORDS,just_words=False):
     df=pd.read_csv(url).fillna('')
@@ -199,6 +243,10 @@ def get_pathdf_models(period_len=5):
     pathdf=get_model_paths_df(PATH_MODELS_BPO, 'model.bin').sort_values(['period_start','run'])
     pathdf['period']=[f'{x}-{y}' for x,y in zip(pathdf.period_start, pathdf.period_end)]
     pathdf['period_len']=pathdf.period_end - pathdf.period_start
+    pathdf['qstr']=[
+        f'vecs({period}_{run.split("_")[-1]})'
+        for period,run in zip(pathdf.period, pathdf.run)
+    ]
     if period_len: pathdf=pathdf[pathdf.period_len==period_len]
     return pathdf[~pathdf.period.isnull()]
 

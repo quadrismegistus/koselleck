@@ -3,3 +3,4 @@ ftfy
 nltk
 ipynb
 ipywidgets
+pysos

@@ -1,47 +1,17 @@
 from koselleck.imports import *
-NBR='nbr'
 
-
-def save_neighb_to_veclib(odf,progress=True):
-    vl=get_veclib(prefix=NBR)
-    for word,wdf in tqdm(odf.groupby('word'),desc='Saving neighbors to veclib',disable=not progress):
-        vl[f'{NBR}({word})']=wdf.to_dict('records')
-
-
-def read_neighb_from_veclib(words,progress=True):
-    vl=get_veclib(prefix=NBR)
-    o=[]
-    for word in tqdm(words,desc='Reading neighbors from veclib',disable=not progress):
-        res=vl.get(f'{NBR}({word})')
-        if res is not None:
-            o+=res
-    return pd.DataFrame(o)
-
-def gen_neighbors(words=None, dfmodels=None, k=25, k_min=10, lim=None, num_proc=1, force=False, num_runs=10):
-#     if not force and os.path.exists(fnfn): return read_df(fnfn)
-    if not dfmodels: dfmodels = get_default_models()
-    if not words: words = get_valid_words()
-    if type(words)==str: words=tokenize_fast(words)
-    
-    odf = odf_done = read_neighb_from_veclib(words)
-    words_todo = words if not len(odf_done) else list(set(words)-set(odf_done.word))
-    
-    if len(words_todo):
-#         preload_models()
-        
-        odf_new=pmap_groups(
-            do_gen_neighbs,
-            dfmodels.iloc[:lim].groupby(['corpus','period']),
-            num_proc=4,
-            desc='Gathering all neighborhoods',
-            use_cache=False,
-            kwargs=dict(k=k,words=words_todo)
-        ).reset_index()
-        
-        save_neighb_to_veclib(odf_new)
-
-        odf=odf_done.append(odf_new)
-    #odf.to_pickle(FN_ALL_NEIGHBS)
+def gen_all_neighbors(fnfn=FN_ALL_NEIGHBS, k=25, k_min=10, lim=None, num_proc=1, force=False, num_runs=10):
+    if not force and os.path.exists(fnfn): return read_df(fnfn)
+    dfmodels = get_pathdf_models(period_len=5).query(f'run<="run_{num_runs:02}" & period_start>=1720')
+    odf=pmap_groups(
+        do_gen_neighbs,
+        dfmodels.iloc[:lim].groupby(['corpus','period']),
+        num_proc=4,
+        desc='Gathering all neighborhoods',
+        use_cache=False,
+        kwargs=dict(k=k)
+    ).reset_index()
+    odf.to_pickle(FN_ALL_NEIGHBS)
     return odf
 
 def _do_gen_neighbs(obj):
@@ -99,15 +69,7 @@ def get_all_neighbors(
         print('Loading data')
         odf=read_df(fnfn)
     else:
-        odf=gen_all_neighbors(
-            fnfn=fnfn,
-            k=k,
-            k_min=k_min,
-            lim=lim,
-            num_proc=num_proc,
-            force=force,
-            num_runs=num_runs
-        )
+        odf=gen_all_neighbors(fnfn=fnfn,k=k,k_min=k_min,lim=lim,num_proc=num_proc,force=force,num_runs=num_runs)
     odf=odf.drop('corpus',1).set_index(['word','period']).sort_index()
     print('Filtering')
     s=odf.query(f'count>={min_count}').groupby(['word','period']).neighbor.nunique()
