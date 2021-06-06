@@ -7,6 +7,184 @@ GBY_LOCAL_O=['corpus1', 'corpus2','period1', 'period2', 'word1', 'word2','qstr']
 
 
 
+
+
+
+
+
+
+def do_cdist(objd):
+    res=cdist(**objd)
+    if res is None: res=pd.DataFrame()
+    return res
+
+
+
+def cdist(word,period=None,run=None,prefix='cdist',neighbors=None,max_num=None,num_runs=10,num_proc=4,force=False,progress=True,cache_only=False,cache=False):
+    index_cols=['word','neighbor','period','run']
+    argd=dict(
+        word=word,period=period,run=run,prefix=prefix,
+        neighbors=neighbors,max_num=max_num,num_runs=num_runs,
+        num_proc=num_proc,force=force,progress=progress,
+        cache_only=cache_only,cache=cache
+    )
+    odf=None
+    
+    if type(word)!=str:
+        objs=[{**argd, **{'word':w, 'progress':False, 'num_proc':1}} for w in word]
+        odf=pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across words', progress=progress))
+        return odf if not cache_only else pd.DataFrame()
+        
+    if period is None:
+        objs=[{**argd, **{'period':prd, 'progress':False, 'num_proc':1}} for prd in get_default_periods()]
+        odf=pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across periods', progress=progress))
+        return odf if not cache_only else pd.DataFrame()
+    #if cache: vl=get_veclib(prefix)
+    
+    if run is None:
+        qstr=f'{word}_{period}'
+        if not force and cache:
+            with get_veclib(prefix) as vl: odf=vl.get(qstr)
+            #odf=vl.get(qstr)
+        if odf is None:
+            objs=[{**argd, **{'run':run+1, 'progress':False, 'num_proc':1}} for run in range(num_runs)]
+            odf=pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across runs', progress=progress))
+            if cache: #vl[qstr]=odf
+                with get_veclib(prefix,autocommit=True) as vl:
+                    vl[qstr]=odf
+#         if not cache_only and neighbors:
+#             neighbors=set(tokenize_fast(neighbors)) if type(neighbors)==str else set(neighbors)
+#             odf=odf.reset_index()
+#             odf=odf[odf.neighbor.isin(neighbors)]
+#             odf=odf.set_index(index_cols)
+        
+        return odf if not cache_only else pd.DataFrame()
+            
+    # otherwise
+
+    # load vecs?
+    dfvecs=vecs(period=period, run=run)
+    if dfvecs is None: return pd.DataFrame()
+    
+    # word not in vocab?
+    if not word in set(dfvecs.index): return pd.DataFrame()
+    
+    # filter by neighbors?
+    if neighbors: dfvecs=dfvecs.loc[[w for w in dfvecs.index if w in set(neighbors) or w==word]]
+
+    # filter by total?
+    if max_num and len(dfvecs)>max_num: dfvecs=dfvecs.iloc[:max_num]
+    
+    # get arrays
+    dfu=dfvecs.loc[word]
+    dfm=dfvecs.drop(word)
+    
+#     print(f'Computing cosine from array {dfu.shape} to {dfm.shape}')
+    res=fastdist.cosine_vector_to_matrix(
+        dfu.values.astype(float),
+        dfm.values.astype(float),
+    )
+    wdx=dict(zip(dfm.index, res))
+    wds=1-pd.Series(wdx)
+    wddf=pd.DataFrame(wds,columns=['cdist']).rename_axis('neighbor').sort_values('cdist')
+    wddf=wddf.reset_index()
+    wddf['word']=word
+    wddf['period']=period
+    wddf['run']=run
+    wddf=wddf.set_index(index_cols)
+    return wddf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def cdist(word,period=None,run=None,prefix='cdist',words=None,max_num=None,num_runs=10,num_proc=4,force=False,progress=True,cache_only=False):
+#     argd=dict(
+#         word=word,period=period,run=run,prefix=prefix,
+#         words=words,max_num=max_num,num_runs=num_runs,
+#         num_proc=num_proc,force=force,progress=progress,
+#         cache_only=cache_only
+#     )
+#     if type(word)!=str:
+#         objs=[{**argd, **{'word':w, 'progress':False, 'num_proc':1}} for w in word]
+#         return pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across words', progress=progress))
+
+#     if period is None:
+#         objs=[{**argd, **{'period':prd, 'progress':False, 'num_proc':1}} for prd in get_default_periods()]
+#         return pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across periods', progress=progress))
+
+#     if run is None:
+#         objs=[{**argd, **{'run':run+1, 'progress':False, 'num_proc':1}} for run in range(num_runs)]
+#         return pd.concat(pmap(do_cdist, objs, num_proc=num_proc, desc='Measuring cosine distances across runs', progress=progress))
+
+#     # otherwise
+
+#     # get?
+#     with get_veclib(prefix) as vl:
+#         if type(run)==int: run=str(run).zfill(2)
+#         wqstr=f'{prefix}({word}_{period}_{run})'
+#         if not force and wqstr in vl and type(vl[wqstr])==pd.DataFrame:
+#             wddf=vl[wqstr].rename_axis('neighbor')
+#         else:
+#             # gen
+#             dfvecs=vecs(period=period, run=run, words=words)
+#             if dfvecs is None:
+#                 print(wqstr,'!?')
+#                 return pd.DataFrame()
+#             if not words: words=dfvecs.index
+#             words=set(words)
+#             if not word in words: return pd.DataFrame()    
+#             dfu=dfvecs.loc[word]
+#             if max_num and len(dfvecs)>max_num: dfvecs=dfvecs.iloc[:max_num]
+#             dfm=dfvecs.drop(word)
+#             res=fastdist.cosine_vector_to_matrix(
+#                 dfu.values.astype(float),
+#                 dfm.values.astype(float),
+#             )
+#             wdx=dict(
+#                 (x,1-y)
+#                 for x,y in zip(dfm.index, res)
+#             )
+#             wds=pd.Series(wdx)#.sort_values()
+#             wddf=pd.DataFrame(wds,columns=['cdist']).rename_axis('neighbor').sort_values('cdist')
+#             vl[wqstr]=wddf
+#         vl.commit()
+    
+#     if not cache_only:
+#         wddf=wddf.reset_index()
+#         wddf['word']=word
+#         wddf['period']=period
+#         wddf['run']=run
+#         wddf=wddf.set_index(['word','neighbor','period','run'])
+#         return wddf
+#     return pd.DataFrame()
+    
+
+
 def measure_dist_local(m1,m2,w1,w2,p1,p2,k=25,mwords=None):
     odx={}
     if not mwords: mwords=set(m1.wv.key_to_index.keys())&set(m2.wv.key_to_index.keys())
@@ -218,70 +396,3 @@ def plot_historical_semantic_distance_matrix(words,save=False,dist_key='dist_loc
 
 
 
-
-def get_default_periods():
-    return sorted(list(set(get_default_models().period)))
-
-def do_cdist(objd):
-    res=cdist(**objd)
-    if res is None: res=pd.DataFrame()
-    return res
-
-def cdist(word,period=None,run=None,prefix='cdist',words=None,max_num=None,num_runs=10,num_proc=1):
-    vl=get_veclib(prefix)
-#     if type(word)!=str:
-#         objs=[
-#             dict(word=w,period=period,run=run,prefix=prefix,words=words,max_num=max_num,num_runs=num_runs,num_proc=1)
-#             for w in word
-#         ]
-#         return pd.concat(pmap(do_cdist, objs, num_proc=num_proc))
-
-    if period is None:
-        objs=[
-            dict(word=word,period=period,run=run,prefix=prefix,words=words,max_num=max_num,num_runs=num_runs,num_proc=1)
-            for period in get_default_periods()
-        ]
-        return pd.concat(pmap(do_cdist, objs, num_proc=num_proc))
-
-    if run is None:
-        objs=[
-            dict(word=word,period=period,run=run+1,prefix=prefix,words=words,max_num=max_num,num_runs=num_runs,num_proc=1)
-            for run in range(num_runs)
-        ]
-        return pd.concat(pmap(do_cdist, objs, num_proc=num_proc, progress=False))
-
-    # otherwise
-
-    # get?
-    if type(run)==int: run=str(run).zfill(2)
-    wqstr=f'{prefix}({word}_{period}_{run})'
-    if wqstr in vl and type(vl[wqstr])==pd.DataFrame:
-        wddf=vl[wqstr]
-    else:
-        # gen
-        dfvecs=get_vecs(period=period, run=run, words=words)
-        if dfvecs is None:
-            print(wqstr,'!?')
-            return pd.DataFrame()
-        if not words: words=dfvecs.index
-        words=set(words)
-        if not word in words: return pd.DataFrame()    
-        dfu=dfvecs.loc[word]
-        if max_num and len(dfvecs)>max_num: dfvecs=dfvecs.iloc[:max_num]
-        dfm=dfvecs.drop(word)
-        res=fastdist.cosine_vector_to_matrix(
-            dfu.values.astype(float),
-            dfm.values.astype(float),
-        )
-        wdx=dict(
-            (x,1-y)
-            for x,y in zip(dfm.index, res)
-        )
-        wds=pd.Series(wdx).sort_values()
-        wddf=pd.DataFrame(wds,columns=['cdist']).rename_axis('word')
-        vl[wqstr]=wddf
-    wddf=wddf.reset_index()
-    wddf['period']=period
-    wddf['run']=run
-    wddf=wddf.set_index(['word'])#,'period','run'])
-    return wddf

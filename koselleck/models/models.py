@@ -31,13 +31,11 @@ def get_vec_qstr(row_or_str,run=1):
     
     
 # def get_vecs(row_or_str,run=1):
-def get_vecs(period,run=1,words=[]):
+def vecs(period,run=1,words=[]):
     qstr=get_vec_qstr(period,run)
     res=dbget(qstr)
     if res is not None:
-        if words:
-            res=dict((w,a) for w,a in res.items() if w in set(words))
-        res=pd.DataFrame(res).T
+        if words: res=res.loc[[i for i in res.index if i in set(words)]]
     return res
     
     
@@ -71,6 +69,13 @@ def get_default_models():
         odf=get_pathdf_models(period_len=5)
         odf.to_pickle(FN_DEFAULT_MODEL_PATHS)
     return odf.query('1720<=period_start<1960 & run<="run_10"')
+    
+
+def get_default_periods():
+    return sorted(list(set(get_default_models().period)))
+
+    
+    
     
 PRELOADED=None
 def preload_models(paths=None,num_proc=1,all_model_cache=True):
@@ -107,34 +112,37 @@ def get_path_model(corpus,period,run):
     return os.path.join(PATH_MODELS,corpus,period,f'run_{run:02}','model.bin')
 
 
+# def save_vecs_in_db0(words=None,num_proc=1):
+#     vl=get_veclib('vecs') 
+#     dfmodels=get_default_models()
+#     objs=list(zip(dfmodels.path,dfmodels.period,dfmodels.run))
+#     for i,odx in enumerate(pmap_iter(
+#         do_save_vecs_in_db,
+#         objs,
+#         num_proc=num_proc
+#     )):
+#         for k,v in odx.items(): vl[k]=v
 
 
 def save_vecs_in_db(words=None,num_proc=1):
-    vl=get_veclib(prefix='vecs')
-#     preload_models()
-    dfmodels=get_default_models()
-    objs=list(zip(dfmodels.path,dfmodels.period,dfmodels.run))
-    for odx in pmap_iter(
-        do_save_vecs_in_db,
-        objs,
-        num_proc=num_proc
-    ):
-        for k,v in odx.items():
-#             display(k,v)
-            vl[k]=v
-
+    with get_veclib('vecs',autocommit=False) as vl: 
+        dfmodels=get_default_models()
+        objs=list(zip(dfmodels.path,dfmodels.period,dfmodels.run))
+        for i,odx in enumerate(pmap_iter(
+            do_save_vecs_in_db,
+            objs,
+            num_proc=num_proc
+        )):
+            for k,v in odx.items(): vl[k]=v
+            if i and not i%100: vl.commit()
+        vl.commit()
+            
 def do_save_vecs_in_db(obj):
     vd={}
     path,prd,run = obj
     rnum=run.split('_')[-1]
     _,m=do_load_model(path)
-    odx=dict((w,m.wv.vectors[i]) for w,i in m.wv.key_to_index.items())
-    vd[f'vecs({prd}_{rnum})']=odx
-#     display(odx)
-#     stop
-    
-#     vl[f'vecw({prd}_{rnum})']=[m.wv.index_to_key[i] for i in range(len(m.wv.vectors))]
-#     for word,idx in tqdm(m.wv.key_to_index.items(),disable=True):
-#         vec=m.wv.vectors[idx]
-#         vl[f'vec({word}_{prd}_{rnum})']=vec
+    wl=[m.wv.index_to_key[i] for i in range(len(m.wv.vectors))]
+    odf=pd.DataFrame(m.wv.vectors, index=wl)
+    vd[f'vecs({prd}_{rnum})']=odf
     return vd

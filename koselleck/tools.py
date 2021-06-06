@@ -2,31 +2,50 @@ from .imports import *
 
 
 def dbget(qstr,to_pd=False):
-    vl=get_veclib(prefix=qstr.split('(')[0])
-    o=vl.get(qstr)
-    if to_pd:
-        if type(o)==list and o and type(o[0])==dict:
-            o=pd.DataFrame(o)
-        elif type(o)==dict:
-            o=pd.Series(o)
-    return o
+#     print('?',qstr)
+    prefix=qstr.split('(')[0]
+    #vl=get_veclib(prefix=prefix)# as vl:
+    with get_veclib(prefix=prefix) as vl:
+        o=vl.get(qstr)
+        if to_pd:
+            if type(o)==list and o and type(o[0])==dict:
+                o=pd.DataFrame(o)
+            elif type(o)==dict:
+                o=pd.Series(o)
+        return o
 
-def get_veclib(prefix):
+def get_veclib1(prefix,autocommit=False):
     global VECLIB
-    if VECLIB[prefix] is None:
-#         import dbm
-#         VECLIB=dbm.open(FN_VECLIB,'c')
-        now=time.time()
-#         print('Connecting to vector library')
-        #VECLIB=tshelve.open(FN_VECLIB)
-#         from pymongo import MongoClient
-        VECLIB[prefix] = MongoDict(host='localhost', port=27017, database='koselleck',collection=prefix)
-#         VECLIB=MongoClient()
-#         print(f'Connected in {round(time.time()-now,1)} seconds')
-#         import redis
-#         VECLIB=redis.Redis(host='localhost', port=6379, db=0)
-#     print(len(VECLIB))
+    if not prefix in VECLIB:
+        #VECLIB[prefix] = MongoDict(host='localhost', port=27017, database='koselleck2',collection=prefix)
+#         VECLIB[prefix] = SqliteDict(os.path.join(PATH_DB,f'db.{prefix}.sqlite'), autocommit=True)
+        VECLIB[prefix] = SqliteDict(
+            os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+            tablename=prefix,
+            autocommit=autocommit,
+        )
     return VECLIB[prefix]
+
+def get_veclib(prefix,autocommit=False):
+    with SqliteDict(
+            os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+            tablename=prefix,
+            autocommit=autocommit) as vl:
+        return vl
+
+# def get_veclib_sqlite(prefix,autocommit=False):
+#     return SqliteDict(
+#             os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+#             tablename=prefix,
+#             autocommit=autocommit)
+    
+def get_veclib_mongo(prefix,autocommit=True):
+    return MongoDict(
+            host='localhost',
+            port=27017,
+            database='koselleck3',
+            collection=prefix)
+
 
 def close_veclib():
     global VECLIB

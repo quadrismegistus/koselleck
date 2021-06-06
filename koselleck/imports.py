@@ -49,7 +49,7 @@ FN_VECLIB=os.path.join(PATH_DATA,'data.veclib.dbm')
 
 DF_LOCALDISTS=None
 DFALLNOV=None
-VECLIB=defaultdict(None)
+VECLIB={}
 
 
 FN_NOVELTY_DATA=os.path.join(PATH_DATA,'data.words_by_rateofchange.v4.pkl')
@@ -64,7 +64,7 @@ DF_MODELS_DL=None
 NEIGHB_SIMPLE_D=None
 FN_ALL_MODEL_CACHE=os.path.join(PATH_DATA,'data.all_models_halfdec.pkl')
 FN_ALL_NEIGHBS_SIMPLE=os.path.join(PATH_DATA,'data.all_local_neighbs.v2.simple.pkl')
-
+PATH_DB=os.path.join(PATH_DATA,'db')
 
 
 import os,sys,time
@@ -75,6 +75,7 @@ import networkx as nx
 import warnings
 warnings.filterwarnings('ignore')
 import shelve
+from pprint import pprint
 
 sys.path.insert(0,'../yapmap')
 sys.path.insert(0,'/home/ryan/github/mongodict')
@@ -112,6 +113,10 @@ except ImportError as e:
     print('!!',e)
     pass
 from mongodict import MongoDict
+from sqlitedict import SqliteDict
+FN_SQLITE=os.path.join(PATH_DB,f'db.koselleck.sqlite')
+logging.Logger.manager.loggerDict['sqlitedict'].disabled=True
+
 
 from .tools import *
 print = log
