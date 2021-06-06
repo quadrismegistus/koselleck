@@ -5,3 +5,5 @@ lib
 .ipynb_checkpoints
 *.pyc
 *png
+.*.py
+
