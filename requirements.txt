@@ -1,0 +1,6 @@
+opencv-python
+ftfy
+nltk
+ipynb
+ipywidgets
+pysos

@@ -1,6 +1,67 @@
 from .imports import *
 
 
+def dbget(qstr,to_pd=False):
+#     print('?',qstr)
+    prefix=qstr.split('(')[0]
+    #vl=get_veclib(prefix=prefix)# as vl:
+    with get_veclib(prefix=prefix) as vl:
+        o=vl.get(qstr)
+        if to_pd:
+            if type(o)==list and o and type(o[0])==dict:
+                o=pd.DataFrame(o)
+            elif type(o)==dict:
+                o=pd.Series(o)
+        return o
+
+def get_veclib1(prefix,autocommit=False):
+    global VECLIB
+    if not prefix in VECLIB:
+        #VECLIB[prefix] = MongoDict(host='localhost', port=27017, database='koselleck2',collection=prefix)
+#         VECLIB[prefix] = SqliteDict(os.path.join(PATH_DB,f'db.{prefix}.sqlite'), autocommit=True)
+        VECLIB[prefix] = SqliteDict(
+            os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+            tablename=prefix,
+            autocommit=autocommit,
+        )
+    return VECLIB[prefix]
+
+def get_veclib(prefix,autocommit=False):
+    with SqliteDict(
+            os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+            tablename=prefix,
+            autocommit=autocommit) as vl:
+        return vl
+
+# def get_veclib_sqlite(prefix,autocommit=False):
+#     return SqliteDict(
+#             os.path.join(PATH_DB,f'db.koselleck.{prefix}.sqlite'),
+#             tablename=prefix,
+#             autocommit=autocommit)
+    
+def get_veclib_mongo(prefix,autocommit=True):
+    return MongoDict(
+            host='localhost',
+            port=27017,
+            database='koselleck3',
+            collection=prefix)
+
+
+def close_veclib():
+    global VECLIB
+    if VECLIB is not None:
+        VECLIB.close()
+        VECLIB=None
+
+
+
+def src(x):
+    from IPython.display import Code,display
+    if type(x)!=str:
+        import inspect
+        x=inspect.getsource(x)
+    display(display_source(x))
+
 def periodize_sattelzeit(y):
     if 1700<=y<1770: return '1700-1770'
     if 1770<=y<1830: return '1770-1830'
@@ -15,6 +76,8 @@ def upfig(fnfn,uproot=UPROOT):
     ofnfn=os.path.join(uproot,os.path.basename(fnfn))
     os.system(f'dbu upload {fnfn} {ofnfn}')
     return os.system(f'dbu share {ofnfn}')
+
+def get_keywords_l(): return get_keywords(just_words=True)
 
 def get_keywords(url=URL_KEYWORDS,just_words=False):
     df=pd.read_csv(url).fillna('')
@@ -194,13 +257,17 @@ def get_decade_level_data(words=None,z=True):
         pickle.dump(o,of)
     return o
 
-def get_pathdf_models():
+
+def get_pathdf_models(period_len=5):
     pathdf=get_model_paths_df(PATH_MODELS_BPO, 'model.bin').sort_values(['period_start','run'])
-    # pathdf['period']=pathdf.period_start.apply(periodize_sattelzeit)
     pathdf['period']=[f'{x}-{y}' for x,y in zip(pathdf.period_start, pathdf.period_end)]
     pathdf['period_len']=pathdf.period_end - pathdf.period_start
+    pathdf['qstr']=[
+        f'vecs({period}_{run.split("_")[-1]})'
+        for period,run in zip(pathdf.period, pathdf.run)
+    ]
+    if period_len: pathdf=pathdf[pathdf.period_len==period_len]
     return pathdf[~pathdf.period.isnull()]
-#     return pathdf#.query('1700<=period_start<1900')
 
 VECNAMES=None
 def get_vector_names():
@@ -313,7 +380,10 @@ def start_fig(data=None, theme='minimal',text_size=8, figure_size=(8,8), **aesd)
     p9.options.dpi=600
     fig=p9.ggplot(p9.aes(**aesd), data=data)
     fig+=getattr(p9,f'theme_{theme}')()
-    fig+=p9.theme(text=p9.element_text(size=text_size))
+    fig+=p9.theme(
+        text=p9.element_text(size=text_size),
+        plot_background=p9.element_rect(fill='white')
+    )
     return fig
     
     
@@ -382,7 +452,49 @@ C=get_corpus()
 logger.remove()
 logger.add(sys.stderr, format="{message}", filter='koselleck', level="INFO")
 # logger.add(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")
-def log(*x,**y): logger.info(*x,**y)
+def log(*x,**y): logger.info(' '.join(str(xx) for xx in x),**y)
     
 
     
+    
+    
+UPROOT='/Markdown/Drafts/TheGreatAbstraction/figures/'
+def upfig(fnfn,uproot=UPROOT):
+    ofnfn=os.path.join(uproot,os.path.basename(fnfn))
+    cmd=f'dbu upload {fnfn} {ofnfn}'
+    os.system(cmd)
+    cmd = f'dbu share {ofnfn}'
+    os.system(cmd)
+    
+    
+    
+    
+def rsync(ifnfn,ofnfn,flags='-avP'):
+    return runcmd(f'rsync {flags} {ifnfn} {ofnfn}')
+
+def _rsync_data_from_ember(obj): return rsync(obj[0], obj[1])
+def rsync_data_from_ember(num_proc=1):
+    paths_I_want = [
+        os.path.join(
+            os.path.dirname(path),
+            'dists.pkl'
+        ).split('/ryan/')[-1] for path in get_model_paths_df(PATH_MODELS_BPO).path
+    ]
+    objs = [
+        (f'ryan@ember:{fn}', os.path.join(os.path.expanduser('~'), fn))
+        for fn in paths_I_want
+    ]
+    objs = [(x,y) for x,y in objs if not os.path.exists(y)]
+    
+    return pmap(_rsync_data_from_ember, objs, num_proc=num_proc, desc='Rsyncing data from ember')
+def runcmd(cmd,verbose=False):
+    import subprocess
+    print('>>',cmd)
+    result = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).decode()
+    return result
+
+
+def periodize(y,ybin=5):
+    y1=y//ybin*ybin
+    y2=y1+ybin
+    return f'{y1}-{y2}'
