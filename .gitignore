@@ -8,4 +8,7 @@ lib
 *.pyc
 *png
 .*.py
+gdrive.json
+data1
+db
 
