@@ -9,14 +9,14 @@ Computing Koselleck book chapter
         * Done with LLTK elsewhere
     b. Generate models
         
-        def gen_models(
-                ybin=5,
-                ymin=1680,
-                ymax=1970,
-                num_runs=1,
-                force=False,
-                nskip_per_yr=NSKIP_PER_YR
-            )
+            def gen_models(
+                    ybin=5,
+                    ymin=1680,
+                    ymax=1970,
+                    num_runs=1,
+                    force=False,
+                    nskip_per_yr=NSKIP_PER_YR
+                )
     
     * Prominent divisions:
         * Half-decade: Used for semantic distance matrices and novelty data
