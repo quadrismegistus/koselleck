@@ -8,6 +8,7 @@ Computing Koselleck book chapter
     a. Generate skipgrams
         * Done with LLTK elsewhere
     b. Generate models
+    
         ```python
         def gen_models(
                 ybin=5,
