@@ -1,0 +1,15 @@
+opencv-python
+ftfy
+nltk
+ipynb
+ipywidgets
+pysos
+pickle5
+sqlitedict
+voila
+ujson
+gspread
+gspread-pandas
+markdown
+lltk-dh
+
