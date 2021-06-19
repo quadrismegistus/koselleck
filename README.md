@@ -8,8 +8,7 @@ Computing Koselleck book chapter
     a. Generate skipgrams
         * Done with LLTK elsewhere
     b. Generate models
-    
-        ```python
+        
         def gen_models(
                 ybin=5,
                 ymin=1680,
@@ -18,7 +17,6 @@ Computing Koselleck book chapter
                 force=False,
                 nskip_per_yr=NSKIP_PER_YR
             )
-        ```
     
     * Prominent divisions:
         * Half-decade: Used for semantic distance matrices and novelty data
