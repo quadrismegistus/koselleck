@@ -12,4 +12,6 @@ gspread
 gspread-pandas
 markdown
 lltk-dh
-
+imgkit
+ipynb
+gensim

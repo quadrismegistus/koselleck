@@ -12,4 +12,17 @@ gspread
 gspread-pandas
 markdown
 lltk-dh
+gensim
+imgkit
+fastdist
+numba
+umap
+yapmap
+hdbscan
+dataframe_image
+factor_analyzer
+plotly
+tabulate
+jupyter_dash
+dash_bootstrap_components
 
