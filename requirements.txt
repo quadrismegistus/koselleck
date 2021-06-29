@@ -25,4 +25,4 @@ plotly
 tabulate
 jupyter_dash
 dash_bootstrap_components
-
+scikit-misc
